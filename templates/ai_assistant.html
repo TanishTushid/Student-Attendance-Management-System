@@ -1,0 +1,320 @@
+{% extends "base.html" %}
+{% block title %}AI Assistant{% endblock %}
+{% block page_title %}AI Assistant{% endblock %}
+{% block breadcrumb %}Home / AI Assistant{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+
+<div class="page-header">
+  <div class="page-header-left">
+    <h1 class="page-heading">🤖 AI Attendance Assistant</h1>
+    <p class="page-sub">Powered by Grok — ask anything about attendance</p>
+  </div>
+</div>
+
+<div class="grid-2" style="gap:24px;align-items:start;">
+
+  <!-- Left: Chat -->
+  <div>
+
+    <!-- Student Selector (admin/teacher) -->
+    {% if current_user.role in ['admin', 'teacher'] and all_students %}
+    <div class="ef-card section-gap">
+      <div class="ef-card-body" style="padding:16px 20px;">
+        <label class="ef-label">Select Student</label>
+        <select class="ef-select" id="studentSelector" onchange="selectStudent(this.value)">
+          <option value="">— Choose a student —</option>
+          {% for s in all_students %}
+          <option value="{{ s.id }}" {% if student and student.id == s.id %}selected{% endif %}>
+            {{ s.roll_no }} — {{ s.name }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- AI Insight -->
+    {% if insight %}
+    <div class="insight-card section-gap">
+      <div class="insight-icon">💡</div>
+      <div class="insight-content">
+        <div class="insight-title">AI Insight for {{ student.name if student else 'Student' }}</div>
+        <div class="insight-text">{{ insight }}</div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Chat UI -->
+    {% if student or current_user.role == 'student' %}
+    <div class="ef-card">
+      <div class="ef-card-header" style="padding-bottom:12px;">
+        <span class="ef-card-title">💬 Chat with AI</span>
+        <span style="font-size:12px;color:var(--text-muted);">
+          Context: {{ student.name if student else 'Your profile' }}
+        </span>
+      </div>
+
+      <div class="chat-container" style="border:none;border-radius:0 0 var(--radius-lg) var(--radius-lg);height:420px;">
+        <div class="chat-messages" id="chatMessages">
+          <!-- Welcome message -->
+          <div class="chat-msg ai">
+            <div class="chat-msg-avatar">🤖</div>
+            <div class="chat-bubble">
+              Hello! I'm EduFlow AI, your attendance advisor. I have access to
+              <strong>{{ student.name if student else 'your' }}</strong>'s verified attendance data.
+              Ask me anything — I'll only use real data. 🎓
+            </div>
+          </div>
+        </div>
+        <div class="chat-input-area">
+          <input type="text" class="chat-input" id="chatInput"
+                 placeholder="Ask about attendance, risk, classes needed..."
+                 onkeydown="if(event.key==='Enter')sendMsg();" />
+          <button class="chat-send-btn" onclick="sendMsg()">➤</button>
+        </div>
+      </div>
+
+      <!-- Suggested Questions -->
+      <div style="padding:14px 20px 20px;display:flex;flex-wrap:wrap;gap:8px;">
+        {% for q in [
+          'What is my attendance?',
+          'Which subject has lowest attendance?',
+          'Am I at risk of shortage?',
+          'How many classes do I need to attend to reach 75%?',
+          'Which subject should I focus on?'
+        ] %}
+        <button class="btn-ef btn-ef-ghost btn-sm" onclick="setQuestion(this.textContent)">
+          {{ q }}
+        </button>
+        {% endfor %}
+      </div>
+    </div>
+    {% else %}
+    <div class="ef-card">
+      <div class="ef-card-body" style="text-align:center;padding:48px;">
+        <div style="font-size:48px;margin-bottom:16px;">🤖</div>
+        <p style="color:var(--text-muted);">Select a student above to start chatting with the AI assistant.</p>
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+
+  <!-- Right: What-If Analysis + Stats -->
+  <div>
+
+    <!-- What-If Analysis -->
+    {% if student %}
+    <div class="ef-card section-gap">
+      <div class="ef-card-header" style="padding-bottom:16px;">
+        <span class="ef-card-title">🔮 What-If Analysis</span>
+      </div>
+      <div class="ef-card-body" style="padding-top:0;">
+        <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">
+          Simulate the impact of attending or missing future classes.
+        </p>
+        <div style="display:flex;gap:10px;align-items:flex-end;margin-bottom:16px;">
+          <div style="flex:1;">
+            <label class="ef-label">Number of future classes</label>
+            <input type="number" class="ef-input" id="nClasses" value="5" min="1" max="100" />
+          </div>
+          <button class="btn-ef btn-ef-primary" onclick="runWhatIf()">Simulate</button>
+        </div>
+
+        <div id="whatifResult" style="display:none;">
+          <div style="display:flex;gap:14px;margin-top:8px;" id="whatifCards">
+          </div>
+          <div id="whatifExplanation" style="margin-top:14px;font-size:13px;color:var(--text-secondary);
+               background:rgba(107,94,168,0.08);border-radius:var(--radius-sm);padding:14px;line-height:1.7;">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Attendance Stats Widget -->
+    {% if student_data %}
+    <div class="ef-card">
+      <div class="ef-card-header" style="padding-bottom:16px;">
+        <span class="ef-card-title">📊 Attendance Summary</span>
+      </div>
+      <div class="ef-card-body" style="padding-top:0;">
+
+        <div style="text-align:center;margin-bottom:20px;">
+          <div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:44px;font-weight:800;
+                      color:{% if student_data.overall_percentage >= 75 %}var(--success){% elif student_data.overall_percentage >= 65 %}var(--warning){% else %}var(--danger){% endif %};">
+            {{ student_data.overall_percentage }}%
+          </div>
+          <div style="font-size:13px;color:var(--text-muted);">
+            {{ student_data.total_present }} / {{ student_data.total_classes }} classes
+          </div>
+          <span class="badge-ef badge-{% if student_data.risk == 'LOW' %}safe{% elif student_data.risk == 'MEDIUM' %}medium{% elif student_data.risk == 'HIGH' %}shortage{% else %}critical{% endif %}" style="margin-top:8px;display:inline-block;">
+            {{ student_data.risk }} RISK
+          </span>
+        </div>
+
+        {% for subj in student_data.subjects %}
+        <div style="margin-bottom:12px;">
+          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;">
+            <span style="color:var(--text-secondary);">{{ subj.subject_code }}</span>
+            <span style="color:{% if subj.percentage >= 75 %}var(--success){% elif subj.percentage >= 65 %}var(--warning){% else %}var(--danger){% endif %};font-weight:600;">
+              {{ subj.percentage }}%
+            </span>
+          </div>
+          <div class="progress-ef" style="height:5px;">
+            <div class="progress-fill {% if subj.risk == 'LOW' %}safe{% elif subj.risk == 'MEDIUM' %}medium{% elif subj.risk == 'HIGH' %}shortage{% else %}critical{% endif %}"
+                 style="width:{{ [subj.percentage, 100] | min }}%;"></div>
+          </div>
+        </div>
+        {% endfor %}
+
+        <div class="divider"></div>
+        <a href="{{ url_for('students.student_detail', student_id=student.id) }}" class="btn-ef btn-ef-secondary btn-sm w-100" style="justify-content:center;">
+          View Full Profile
+        </a>
+      </div>
+    </div>
+    {% endif %}
+    {% endif %}
+
+  </div>
+</div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const STUDENT_ID = {{ student.id if student else 'null' }};
+const USER_ROLE  = '{{ current_user.role }}';
+
+function selectStudent(id) {
+  if (id) window.location.href = '{{ url_for("ai.ai_assistant") }}?student_id=' + id;
+}
+
+function setQuestion(text) {
+  document.getElementById('chatInput').value = text;
+  document.getElementById('chatInput').focus();
+}
+
+async function sendMsg() {
+  const input = document.getElementById('chatInput');
+  const q = input.value.trim();
+  if (!q) return;
+
+  const studentId = STUDENT_ID ||
+    (document.getElementById('studentSelector') ? document.getElementById('studentSelector').value : null);
+
+  appendMsg('user', q);
+  input.value = '';
+
+  const typingEl = appendTyping();
+
+  try {
+    const res = await fetch('{{ url_for("ai.ask_ai") }}', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question: q, student_id: studentId }),
+    });
+    const data = await res.json();
+    typingEl.remove();
+
+    if (data.error) {
+      appendMsg('ai', '❌ ' + data.error, true);
+    } else {
+      appendMsg('ai', data.response);
+    }
+  } catch(e) {
+    typingEl.remove();
+    appendMsg('ai', '❌ Network error. Please try again.', true);
+  }
+}
+
+function appendMsg(role, text, isError=false) {
+  const container = document.getElementById('chatMessages');
+  const div = document.createElement('div');
+  div.className = `chat-msg ${role}`;
+  div.innerHTML = `
+    <div class="chat-msg-avatar">${role === 'user' ? '👤' : '🤖'}</div>
+    <div class="chat-bubble" style="${isError ? 'border-color:rgba(248,113,113,0.3);color:var(--danger);' : ''}">
+      ${text.replace(/\n/g, '<br>')}
+    </div>`;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+  return div;
+}
+
+function appendTyping() {
+  const container = document.getElementById('chatMessages');
+  const div = document.createElement('div');
+  div.className = 'chat-msg ai';
+  div.innerHTML = `
+    <div class="chat-msg-avatar">🤖</div>
+    <div class="chat-bubble">
+      <div class="typing-dots"><span></span><span></span><span></span></div>
+    </div>`;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+  return div;
+}
+
+async function runWhatIf() {
+  const n = parseInt(document.getElementById('nClasses').value);
+  if (!n || n < 1 || n > 100) { alert('Enter a number between 1 and 100'); return; }
+
+  const studentId = STUDENT_ID ||
+    (document.getElementById('studentSelector') ? document.getElementById('studentSelector').value : null);
+
+  if (!studentId) { alert('Please select a student first'); return; }
+
+  const btn = event.target;
+  btn.textContent = 'Calculating...';
+  btn.disabled = true;
+
+  try {
+    const res = await fetch('{{ url_for("ai.whatif_analysis") }}', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ student_id: studentId, n_classes: n }),
+    });
+    const data = await res.json();
+
+    if (data.error) { alert(data.error); return; }
+
+    document.getElementById('whatifResult').style.display = 'block';
+
+    const attendColor = data.attend_all_percentage >= 75 ? 'var(--success)' : 'var(--danger)';
+    const missColor   = data.miss_all_percentage >= 75 ? 'var(--success)' : 'var(--danger)';
+
+    document.getElementById('whatifCards').innerHTML = `
+      <div style="flex:1;background:rgba(74,222,128,0.08);border:1px solid rgba(74,222,128,0.2);
+                  border-radius:var(--radius-md);padding:16px;text-align:center;">
+        <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">
+          ✅ Attend all ${n}
+        </div>
+        <div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:28px;font-weight:800;color:${attendColor};">
+          ${data.attend_all_percentage.toFixed(1)}%
+        </div>
+      </div>
+      <div style="flex:1;background:rgba(248,113,113,0.08);border:1px solid rgba(248,113,113,0.2);
+                  border-radius:var(--radius-md);padding:16px;text-align:center;">
+        <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">
+          ❌ Miss all ${n}
+        </div>
+        <div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:28px;font-weight:800;color:${missColor};">
+          ${data.miss_all_percentage.toFixed(1)}%
+        </div>
+      </div>`;
+
+    document.getElementById('whatifExplanation').innerHTML =
+      (data.explanation || '').replace(/\n/g, '<br>');
+  } catch(e) {
+    alert('Error running analysis. Please try again.');
+  } finally {
+    btn.textContent = 'Simulate';
+    btn.disabled = false;
+  }
+}
+</script>
+{% endblock %}

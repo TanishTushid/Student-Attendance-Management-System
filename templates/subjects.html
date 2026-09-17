@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}Subjects{% endblock %}
+{% block page_title %}Subjects{% endblock %}
+{% block breadcrumb %}Home / Subjects{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+
+<div class="page-header">
+  <div class="page-header-left">
+    <h1 class="page-heading">Subjects</h1>
+    <p class="page-sub">{{ subjects | length }} subjects registered</p>
+  </div>
+  {% if current_user.role == 'admin' %}
+  <button class="btn-ef btn-ef-primary" onclick="document.getElementById('addSubjectForm').style.display='block';this.style.display='none';">
+    ➕ Add Subject
+  </button>
+  {% endif %}
+</div>
+
+<!-- Add Subject Form (collapsible) -->
+{% if current_user.role == 'admin' %}
+<div class="ef-card section-gap" id="addSubjectForm" style="display:none;">
+  <div class="ef-card-header" style="padding-bottom:16px;">
+    <span class="ef-card-title">Add New Subject</span>
+  </div>
+  <div class="ef-card-body" style="padding-top:0;">
+    <form method="POST" action="{{ url_for('attendance.add_subject') }}"
+          style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
+      <div style="flex:2;min-width:180px;">
+        <label class="ef-label">Subject Name *</label>
+        <input type="text" class="ef-input" name="name" placeholder="e.g. Data Structures" required />
+      </div>
+      <div style="flex:1;min-width:120px;">
+        <label class="ef-label">Code *</label>
+        <input type="text" class="ef-input" name="code" placeholder="e.g. DSA301" required />
+      </div>
+      <div style="flex:1;min-width:120px;">
+        <label class="ef-label">Semester *</label>
+        <select class="ef-select" name="semester" required>
+          {% for i in range(1,9) %}<option value="{{ i }}">Sem {{ i }}</option>{% endfor %}
+        </select>
+      </div>
+      <div style="flex:1;min-width:100px;">
+        <label class="ef-label">Section *</label>
+        <select class="ef-select" name="section" required>
+          {% for s in ['A','B','C','D'] %}<option value="{{ s }}">{{ s }}</option>{% endfor %}
+        </select>
+      </div>
+      <div style="flex:1;min-width:80px;">
+        <label class="ef-label">Credits</label>
+        <select class="ef-select" name="credits">
+          {% for c in [1,2,3,4,5] %}<option value="{{ c }}" {% if c==4 %}selected{% endif %}>{{ c }}</option>{% endfor %}
+        </select>
+      </div>
+      <button type="submit" class="btn-ef btn-ef-primary">Add</button>
+    </form>
+  </div>
+</div>
+{% endif %}
+
+<!-- Subjects Table -->
+<div class="ef-card">
+  <div class="ef-table-wrapper" style="border:none;border-radius:0 0 var(--radius-lg) var(--radius-lg);">
+    <table class="ef-table">
+      <thead>
+        <tr>
+          <th>Subject Name</th>
+          <th>Code</th>
+          <th>Semester</th>
+          <th>Section</th>
+          <th>Credits</th>
+          {% if current_user.role == 'admin' %}<th>Actions</th>{% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% if subjects %}
+          {% for s in subjects %}
+          <tr>
+            <td>
+              <div style="font-weight:600;color:var(--text-primary);">{{ s.name }}</div>
+            </td>
+            <td><code style="background:rgba(255,255,255,0.06);padding:3px 8px;border-radius:4px;color:var(--purple-light);">{{ s.code }}</code></td>
+            <td><span class="badge-ef badge-purple">Sem {{ s.semester }}</span></td>
+            <td><span class="badge-ef badge-peach">Sec {{ s.section }}</span></td>
+            <td style="color:var(--text-secondary);">{{ s.credits }} cr</td>
+            {% if current_user.role == 'admin' %}
+            <td>
+              <form method="POST" action="{{ url_for('attendance.delete_subject', subject_id=s.id) }}"
+                    onsubmit="return confirm('Delete {{ s.name }}?')">
+                <button type="submit" class="btn-ef btn-ef-danger btn-sm">🗑 Delete</button>
+              </form>
+            </td>
+            {% endif %}
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text-muted);">No subjects found.</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+</div>
+{% endblock %}

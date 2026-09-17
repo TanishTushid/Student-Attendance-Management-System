@@ -1,0 +1,346 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+{% block breadcrumb %}Home / Dashboard{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+
+{% if current_user.role == 'student' %}
+<!-- ══════════════════════════════════════════════
+     STUDENT DASHBOARD
+══════════════════════════════════════════════ -->
+{% if student_data %}
+
+<!-- Greeting -->
+<div class="page-header">
+  <div class="page-header-left">
+    <h1 class="page-heading">Good morning, {{ current_user.full_name.split()[0] }}! 👋</h1>
+    <p class="page-sub">Here's your attendance overview</p>
+  </div>
+  <a href="{{ url_for('ai.ai_assistant') }}" class="btn-ef btn-ef-primary">
+    🤖 Ask AI Assistant
+  </a>
+</div>
+
+<!-- Student Stat Cards -->
+<div class="stat-cards-grid">
+  <div class="stat-card card-purple">
+    <div class="stat-card-top">
+      <div class="stat-icon purple">📊</div>
+      <span class="stat-change {% if student_data.overall_percentage >= 75 %}up{% else %}down{% endif %}">
+        {% if student_data.overall_percentage >= 75 %}✓ Safe{% else %}⚠ Risk{% endif %}
+      </span>
+    </div>
+    <div class="stat-value">{{ student_data.overall_percentage }}%</div>
+    <div class="stat-label">Overall Attendance</div>
+  </div>
+
+  <div class="stat-card card-peach">
+    <div class="stat-card-top">
+      <div class="stat-icon peach">✅</div>
+    </div>
+    <div class="stat-value">{{ student_data.total_present }}</div>
+    <div class="stat-label">Classes Attended</div>
+  </div>
+
+  <div class="stat-card card-green">
+    <div class="stat-card-top">
+      <div class="stat-icon green">📚</div>
+    </div>
+    <div class="stat-value">{{ student_data.total_classes }}</div>
+    <div class="stat-label">Total Classes</div>
+  </div>
+
+  <div class="stat-card {% if student_data.required_classes == 0 %}card-green{% else %}card-red{% endif %}">
+    <div class="stat-card-top">
+      <div class="stat-icon {% if student_data.required_classes == 0 %}green{% else %}red{% endif %}">🎯</div>
+    </div>
+    <div class="stat-value">
+      {% if student_data.required_classes == 0 %}0{% else %}{{ student_data.required_classes }}{% endif %}
+    </div>
+    <div class="stat-label">
+      {% if student_data.required_classes == 0 %}Classes above 75%{% else %}Classes needed for 75%{% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- AI Insight -->
+{% if insight %}
+<div class="insight-card section-gap">
+  <div class="insight-icon">🤖</div>
+  <div class="insight-content">
+    <div class="insight-title">AI Attendance Insight</div>
+    <div class="insight-text">{{ insight }}</div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Subject-wise Attendance -->
+<div class="ef-card section-gap">
+  <div class="ef-card-header" style="padding-bottom:16px;">
+    <span class="ef-card-title">Subject-wise Attendance</span>
+    <a href="{{ url_for('students.student_detail', student_id=current_user.student_id) }}" class="btn-ef btn-ef-ghost btn-sm">View Details</a>
+  </div>
+  <div class="ef-card-body" style="padding-top:0;">
+    {% for subj in student_data.subjects %}
+    <div style="margin-bottom:18px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <div>
+          <span style="font-size:14px;font-weight:600;color:var(--text-primary);">{{ subj.subject_name }}</span>
+          <span class="badge-ef badge-purple" style="margin-left:8px;font-size:10px;">{{ subj.subject_code }}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span style="font-size:13px;color:var(--text-muted);">{{ subj.present }}/{{ subj.total }}</span>
+          <span style="font-size:14px;font-weight:700;color:{% if subj.percentage >= 75 %}var(--success){% elif subj.percentage >= 65 %}var(--warning){% else %}var(--danger){% endif %};">
+            {{ subj.percentage }}%
+          </span>
+          <span class="badge-ef badge-{% if subj.risk == 'LOW' %}safe{% elif subj.risk == 'MEDIUM' %}medium{% elif subj.risk == 'HIGH' %}shortage{% else %}critical{% endif %}">
+            {{ subj.risk }}
+          </span>
+        </div>
+      </div>
+      <div class="progress-ef">
+        <div class="progress-fill {% if subj.risk == 'LOW' %}safe{% elif subj.risk == 'MEDIUM' %}medium{% elif subj.risk == 'HIGH' %}shortage{% else %}critical{% endif %}"
+             style="width:{{ [subj.percentage, 100] | min }}%;"></div>
+      </div>
+      {% if subj.required_classes > 0 %}
+      <p style="font-size:11px;color:var(--danger);margin-top:4px;">
+        ⚠ Attend next {{ subj.required_classes }} classes to reach 75%
+      </p>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+{% else %}
+<div class="ef-card">
+  <div class="ef-card-body" style="text-align:center;padding:40px;">
+    <p style="font-size:48px;margin-bottom:16px;">📊</p>
+    <p style="color:var(--text-muted);">No attendance records found for your profile.</p>
+  </div>
+</div>
+{% endif %}
+
+{% else %}
+<!-- ══════════════════════════════════════════════
+     ADMIN / TEACHER DASHBOARD
+══════════════════════════════════════════════ -->
+
+<div class="page-header">
+  <div class="page-header-left">
+    <h1 class="page-heading">Good morning, {{ current_user.full_name.split()[0] }}! 👋</h1>
+    <p class="page-sub">Here's your institution overview</p>
+  </div>
+  <div style="display:flex;gap:10px;">
+    <a href="{{ url_for('attendance.mark_attendance') }}" class="btn-ef btn-ef-primary">
+      ✅ Mark Attendance
+    </a>
+    <a href="{{ url_for('reports.reports') }}" class="btn-ef btn-ef-secondary">
+      📊 View Reports
+    </a>
+  </div>
+</div>
+
+<!-- Stats Cards -->
+{% if stats %}
+<div class="stat-cards-grid">
+  <div class="stat-card card-purple">
+    <div class="stat-card-top">
+      <div class="stat-icon purple">👨‍🎓</div>
+    </div>
+    <div class="stat-value">{{ stats.total_students }}</div>
+    <div class="stat-label">Total Students</div>
+  </div>
+
+  <div class="stat-card card-peach">
+    <div class="stat-card-top">
+      <div class="stat-icon peach">📚</div>
+    </div>
+    <div class="stat-value">{{ stats.total_subjects }}</div>
+    <div class="stat-label">Active Subjects</div>
+  </div>
+
+  <div class="stat-card card-green">
+    <div class="stat-card-top">
+      <div class="stat-icon green">📊</div>
+      <span class="stat-change {% if stats.avg_attendance >= 75 %}up{% else %}down{% endif %}">
+        {{ '▲' if stats.avg_attendance >= 75 else '▼' }}
+      </span>
+    </div>
+    <div class="stat-value">{{ stats.avg_attendance }}%</div>
+    <div class="stat-label">Average Attendance</div>
+  </div>
+
+  <div class="stat-card card-red">
+    <div class="stat-card-top">
+      <div class="stat-icon red">⚠️</div>
+    </div>
+    <div class="stat-value">{{ stats.below_75 }}</div>
+    <div class="stat-label">Shortage Students (&lt;75%)</div>
+  </div>
+
+  <div class="stat-card card-red">
+    <div class="stat-card-top">
+      <div class="stat-icon red">🚨</div>
+    </div>
+    <div class="stat-value">{{ stats.below_65 }}</div>
+    <div class="stat-label">Critical Students (&lt;65%)</div>
+  </div>
+
+  <div class="stat-card card-blue">
+    <div class="stat-card-top">
+      <div class="stat-icon blue">📋</div>
+    </div>
+    <div class="stat-value">{{ stats.total_records }}</div>
+    <div class="stat-label">Total Records</div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Charts Row -->
+<div class="grid-2 section-gap">
+
+  <!-- Subject-wise Chart -->
+  <div class="ef-card">
+    <div class="ef-card-header" style="padding-bottom:16px;">
+      <span class="ef-card-title">Subject-wise Attendance</span>
+    </div>
+    <div class="ef-card-body" style="padding-top:8px;">
+      <div class="chart-container">
+        <canvas id="subjectChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Distribution Chart -->
+  <div class="ef-card">
+    <div class="ef-card-header" style="padding-bottom:16px;">
+      <span class="ef-card-title">Attendance Distribution</span>
+    </div>
+    <div class="ef-card-body" style="padding-top:8px;">
+      <div class="chart-container">
+        <canvas id="distChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Recent Activity -->
+{% if stats and stats.recent_activity %}
+<div class="ef-card section-gap">
+  <div class="ef-card-header" style="padding-bottom:16px;">
+    <span class="ef-card-title">Recent Activity</span>
+    <a href="{{ url_for('attendance.mark_attendance') }}" class="btn-ef btn-ef-secondary btn-sm">Mark New</a>
+  </div>
+  <div class="ef-table-wrapper" style="border:none;border-radius:0;">
+    <table class="ef-table">
+      <thead>
+        <tr>
+          <th>Student</th>
+          <th>Subject</th>
+          <th>Date</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for act in stats.recent_activity %}
+        <tr>
+          <td>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div class="avatar avatar-sm avatar-purple">{{ act.student_name[0] }}</div>
+              <div>
+                <div style="font-weight:600;">{{ act.student_name }}</div>
+                <div style="font-size:11px;color:var(--text-muted);">{{ act.roll_no }}</div>
+              </div>
+            </div>
+          </td>
+          <td style="color:var(--text-secondary);">{{ act.subject_name }}</td>
+          <td style="color:var(--text-muted);">{{ act.date }}</td>
+          <td>
+            <span class="badge-ef badge-{{ 'present' if act.status == 'Present' else 'absent' }}">
+              {{ act.status }}
+            </span>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+{% endif %} {# end admin/teacher #}
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% if subject_chart_data %}
+<script>
+// Chart.js defaults
+Chart.defaults.color = '#8a8a8a';
+Chart.defaults.borderColor = 'rgba(212,207,198,0.6)';
+
+const subjectLabels = {{ subject_chart_data | map(attribute='code') | list | tojson }};
+const subjectData   = {{ subject_chart_data | map(attribute='percentage') | list | tojson }};
+
+// Subject Bar Chart
+new Chart(document.getElementById('subjectChart'), {
+  type: 'bar',
+  data: {
+    labels: subjectLabels,
+    datasets: [{
+      label: 'Attendance %',
+      data: subjectData,
+      backgroundColor: subjectData.map(v =>
+        v >= 80 ? 'rgba(74,222,128,0.7)' :
+        v >= 75 ? 'rgba(251,191,36,0.7)' :
+        v >= 65 ? 'rgba(251,146,60,0.7)' :
+                  'rgba(248,113,113,0.7)'
+      ),
+      borderRadius: 8,
+      borderSkipped: false,
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      y: { min: 0, max: 100, ticks: { callback: v => v+'%' }, grid: { color: 'rgba(155,142,196,0.1)' } },
+      x: { grid: { display: false } }
+    }
+  }
+});
+
+// Distribution Doughnut
+const stats = {
+  safe:     {{ stats.total_students - stats.below_75 if stats else 0 }},
+  shortage: {{ (stats.below_75 - stats.below_65) if stats else 0 }},
+  critical: {{ stats.below_65 if stats else 0 }},
+};
+
+new Chart(document.getElementById('distChart'), {
+  type: 'doughnut',
+  data: {
+    labels: ['Safe (≥75%)', 'Shortage (65-74%)', 'Critical (<65%)'],
+    datasets: [{
+      data: [stats.safe, stats.shortage, stats.critical],
+      backgroundColor: ['rgba(74,222,128,0.8)', 'rgba(251,146,60,0.8)', 'rgba(248,113,113,0.8)'],
+      borderWidth: 0,
+      hoverOffset: 8,
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    cutout: '65%',
+    plugins: {
+      legend: { position: 'bottom', labels: { padding: 16, boxWidth: 12, borderRadius: 4 } }
+    }
+  }
+});
+</script>
+{% endif %}
+{% endblock %}

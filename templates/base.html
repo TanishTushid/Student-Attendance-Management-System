@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}EduFlow{% endblock %} — Student Attendance System</title>
+  <meta name="theme-color" content="#f7f5f0" />
+  <meta name="description" content="EduFlow AI-Powered Student Attendance Management System" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎓</text></svg>" />
+
+  <!-- Bootstrap 5 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <!-- Bootstrap Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
+  <!-- EduFlow Custom CSS -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+
+  {% block head %}{% endblock %}
+</head>
+<body>
+
+<!-- ──────────────────────────────────── -->
+<!--  Flash Toast Container              -->
+<!-- ──────────────────────────────────── -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+  <div class="flash-container" id="flashContainer">
+    {% for category, message in messages %}
+    <div class="flash-toast {{ category }}" id="toast-{{ loop.index }}">
+      <span>
+        {% if category == 'success' %}✅{% elif category == 'danger' %}❌{% elif category == 'warning' %}⚠️{% else %}ℹ️{% endif %}
+      </span>
+      <span>{{ message }}</span>
+      <button class="flash-close" onclick="this.parentElement.remove()">×</button>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+{% endwith %}
+
+<!-- ──────────────────────────────────── -->
+<!--  App Wrapper                        -->
+<!-- ──────────────────────────────────── -->
+<div class="app-wrapper">
+
+  <!-- ── Sidebar ────────────────────────────────── -->
+  <aside class="sidebar" id="sidebar">
+
+    <!-- Brand -->
+    <a href="{{ url_for('main.dashboard') }}" class="sidebar-brand">
+      <div class="brand-logo">🎓</div>
+      <div class="brand-text">
+        <span class="brand-name">EduFlow</span>
+        <span class="brand-tagline">Attendance System</span>
+      </div>
+    </a>
+
+    <!-- Navigation -->
+    <nav class="sidebar-nav">
+
+      <span class="nav-section-label">Main</span>
+
+      <a href="{{ url_for('main.dashboard') }}"
+         class="nav-item {% if request.endpoint == 'main.dashboard' %}active{% endif %}">
+        <span class="nav-icon">🏠</span> Dashboard
+      </a>
+
+      {% if current_user.role in ['admin', 'teacher'] %}
+      <a href="{{ url_for('students.students_list') }}"
+         class="nav-item {% if 'students' in request.endpoint %}active{% endif %}">
+        <span class="nav-icon">👨‍🎓</span> Students
+      </a>
+      {% endif %}
+
+      {% if current_user.role == 'admin' %}
+      <a href="{{ url_for('attendance.subjects_list') }}"
+         class="nav-item {% if 'subject' in request.endpoint %}active{% endif %}">
+        <span class="nav-icon">📚</span> Subjects
+      </a>
+      {% endif %}
+
+      <span class="nav-section-label">Attendance</span>
+
+      {% if current_user.role in ['admin', 'teacher'] %}
+      <a href="{{ url_for('attendance.mark_attendance') }}"
+         class="nav-item {% if request.endpoint == 'attendance.mark_attendance' %}active{% endif %}">
+        <span class="nav-icon">✅</span> Mark Attendance
+      </a>
+      {% endif %}
+
+      <a href="{{ url_for('reports.reports') }}"
+         class="nav-item {% if request.endpoint == 'reports.reports' %}active{% endif %}">
+        <span class="nav-icon">📊</span> Reports
+      </a>
+
+      <span class="nav-section-label">AI</span>
+
+      <a href="{{ url_for('ai.ai_assistant') }}"
+         class="nav-item {% if request.endpoint == 'ai.ai_assistant' %}active{% endif %}">
+        <span class="nav-icon">🤖</span> AI Assistant
+        <span class="nav-badge">NEW</span>
+      </a>
+
+      {% if current_user.role == 'student' and current_user.student_id %}
+      <span class="nav-section-label">My Profile</span>
+      <a href="{{ url_for('students.student_detail', student_id=current_user.student_id) }}"
+         class="nav-item">
+        <span class="nav-icon">👤</span> My Attendance
+      </a>
+      {% endif %}
+
+    </nav>
+
+    <!-- Sidebar Footer -->
+    <div class="sidebar-footer">
+      <div class="user-card">
+        <div class="user-avatar">{{ current_user.full_name[0] }}</div>
+        <div class="user-info">
+          <div class="user-name">{{ current_user.full_name }}</div>
+          <div class="user-role">{{ current_user.role | title }}</div>
+        </div>
+      </div>
+      <a href="{{ url_for('auth.logout') }}" class="btn-ef btn-ef-ghost btn-sm w-100" style="justify-content:center;">
+        <i class="bi bi-box-arrow-right"></i> Logout
+      </a>
+    </div>
+
+  </aside>
+
+  <!-- Sidebar Overlay (mobile) -->
+  <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
+  <!-- ── Main Content ──────────────────────────── -->
+  <div class="main-content">
+
+    <!-- Top Bar -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="sidebar-toggle" onclick="toggleSidebar()">
+          <i class="bi bi-list"></i>
+        </button>
+        <div>
+          <div class="page-title">{% block page_title %}Dashboard{% endblock %}</div>
+          <div class="breadcrumb-text text-muted-ef" style="font-size:12px;">{% block breadcrumb %}Home{% endblock %}</div>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <div class="search-wrapper">
+          <i class="bi bi-search search-icon"></i>
+          <input type="text" class="ef-input search-input" placeholder="Search students, subjects..." style="min-width:180px;">
+        </div>
+        <span style="font-size:12px; color:var(--text-muted); font-weight:500;">
+          {{ now.strftime('%a, %d %b %Y') if now else '' }}
+        </span>
+        <a href="{{ url_for('auth.logout') }}" class="topbar-btn" title="Logout">
+          <i class="bi bi-box-arrow-right"></i>
+        </a>
+      </div>
+    </header>
+
+    <!-- Page Content -->
+    <main class="page-content fade-in">
+      {% block content %}{% endblock %}
+    </main>
+
+  </div>
+</div>
+
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+
+<script>
+// ── Sidebar toggle ──────────────────────────────────
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebarOverlay').classList.toggle('show');
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebarOverlay').classList.remove('show');
+}
+
+// ── Auto-dismiss flash toasts ───────────────────────
+document.querySelectorAll('.flash-toast').forEach((el, i) => {
+  setTimeout(() => { el.style.opacity = '0'; el.style.transform = 'translateX(100%)'; el.style.transition = '0.3s'; setTimeout(() => el.remove(), 300); }, 4000 + i * 500);
+});
+</script>
+
+{% block scripts %}{% endblock %}
+</body>
+</html>

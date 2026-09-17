@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}Add Student{% endblock %}
+{% block page_title %}Add Student{% endblock %}
+{% block breadcrumb %}Home / Students / Add{% endblock %}
+
+{% block content %}
+<div class="fade-in" style="max-width:700px;margin:0 auto;">
+
+  <div class="page-header">
+    <div class="page-header-left">
+      <h1 class="page-heading">Add New Student</h1>
+      <p class="page-sub">Register a new student in the system</p>
+    </div>
+    <a href="{{ url_for('students.students_list') }}" class="btn-ef btn-ef-ghost">← Back</a>
+  </div>
+
+  <div class="ef-card">
+    <div class="ef-card-body">
+      <form method="POST" action="{{ url_for('students.add_student') }}">
+
+        <div class="grid-2">
+          <div class="ef-form-group">
+            <label class="ef-label" for="name">Full Name *</label>
+            <input type="text" class="ef-input" id="name" name="name" placeholder="e.g. Rahul Sharma" required />
+          </div>
+          <div class="ef-form-group">
+            <label class="ef-label" for="roll_no">Roll Number *</label>
+            <input type="text" class="ef-input" id="roll_no" name="roll_no" placeholder="e.g. CS301021" required />
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="ef-form-group">
+            <label class="ef-label" for="email">Email Address</label>
+            <input type="email" class="ef-input" id="email" name="email" placeholder="student@example.com" />
+          </div>
+          <div class="ef-form-group">
+            <label class="ef-label" for="phone">Phone Number</label>
+            <input type="text" class="ef-input" id="phone" name="phone" placeholder="+91 98765 43210" />
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="ef-form-group">
+            <label class="ef-label" for="course">Course *</label>
+            <select class="ef-select" id="course" name="course" required>
+              <option value="">Select Course</option>
+              <option value="B.Tech CSE">B.Tech CSE</option>
+              <option value="B.Tech IT">B.Tech IT</option>
+              <option value="B.Tech ECE">B.Tech ECE</option>
+              <option value="BCA">BCA</option>
+              <option value="MCA">MCA</option>
+              <option value="B.Sc CS">B.Sc CS</option>
+            </select>
+          </div>
+          <div class="ef-form-group">
+            <label class="ef-label" for="gender">Gender</label>
+            <select class="ef-select" id="gender" name="gender">
+              <option value="">Select Gender</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="ef-form-group">
+            <label class="ef-label" for="semester">Semester *</label>
+            <select class="ef-select" id="semester" name="semester" required>
+              <option value="">Select Semester</option>
+              {% for i in range(1, 9) %}
+              <option value="{{ i }}">Semester {{ i }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="ef-form-group">
+            <label class="ef-label" for="section">Section *</label>
+            <select class="ef-select" id="section" name="section" required>
+              <option value="">Select Section</option>
+              <option value="A">Section A</option>
+              <option value="B">Section B</option>
+              <option value="C">Section C</option>
+              <option value="D">Section D</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div style="display:flex;gap:12px;justify-content:flex-end;">
+          <a href="{{ url_for('students.students_list') }}" class="btn-ef btn-ef-ghost">Cancel</a>
+          <button type="submit" class="btn-ef btn-ef-primary">
+            ➕ Add Student
+          </button>
+        </div>
+
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

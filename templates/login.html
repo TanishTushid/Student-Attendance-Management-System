@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login — EduFlow</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎓</text></svg>" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+</head>
+<body>
+
+<!-- Flash Messages -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+  <div class="flash-container">
+    {% for category, message in messages %}
+    <div class="flash-toast {{ category }}">
+      <span>{% if category == 'success' %}✅{% elif category == 'danger' %}❌{% elif category == 'warning' %}⚠️{% else %}ℹ️{% endif %}</span>
+      <span>{{ message }}</span>
+      <button class="flash-close" onclick="this.parentElement.remove()">×</button>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+{% endwith %}
+
+<div class="login-page">
+  <div class="login-card">
+
+    <!-- Logo & Title -->
+    <div class="login-logo">🎓</div>
+    <h1 class="login-title">Welcome to EduFlow</h1>
+    <p class="login-sub">AI-Powered Student Attendance Management</p>
+
+    <!-- Login Form -->
+    <form method="POST" action="{{ url_for('auth.login') }}" autocomplete="off">
+
+      <div class="ef-form-group">
+        <label class="ef-label" for="username">Username</label>
+        <input type="text" class="ef-input" id="username" name="username"
+               placeholder="Enter your username" required autofocus />
+      </div>
+
+      <div class="ef-form-group">
+        <label class="ef-label" for="password">Password</label>
+        <div style="position:relative;">
+          <input type="password" class="ef-input" id="password" name="password"
+                 placeholder="Enter your password" required style="padding-right:44px;" />
+          <button type="button" onclick="togglePwd()"
+                  style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:16px;">
+            <i class="bi bi-eye" id="eyeIcon"></i>
+          </button>
+        </div>
+      </div>
+
+      <button type="submit" class="btn-ef btn-ef-primary btn-lg w-100 mt-2" style="justify-content:center;">
+        <i class="bi bi-box-arrow-in-right"></i> Sign In
+      </button>
+    </form>
+
+    <!-- Demo Credentials -->
+    <div class="demo-credentials mt-4">
+      <p style="font-size:12px;font-weight:700;color:var(--yellow-dark);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px;">
+        🎯 Demo Credentials
+      </p>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-size:12px;color:var(--text-muted);">Admin</span>
+          <code style="font-size:12px;color:var(--text-secondary);background:var(--cream-dark);padding:3px 8px;border-radius:4px;">admin / admin123</code>
+          <button class="btn-ef btn-ef-secondary btn-sm" style="padding:4px 10px;font-size:11px;"
+                  onclick="fillLogin('admin','admin123')">Use</button>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-size:12px;color:var(--text-muted);">Teacher</span>
+          <code style="font-size:12px;color:var(--text-secondary);background:var(--cream-dark);padding:3px 8px;border-radius:4px;">teacher / teacher123</code>
+          <button class="btn-ef btn-ef-secondary btn-sm" style="padding:4px 10px;font-size:11px;"
+                  onclick="fillLogin('teacher','teacher123')">Use</button>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-size:12px;color:var(--text-muted);">Student</span>
+          <code style="font-size:12px;color:var(--text-secondary);background:var(--cream-dark);padding:3px 8px;border-radius:4px;">student / student123</code>
+          <button class="btn-ef btn-ef-secondary btn-sm" style="padding:4px 10px;font-size:11px;"
+                  onclick="fillLogin('student','student123')">Use</button>
+        </div>
+      </div>
+    </div>
+
+    <p style="text-align:center;margin-top:20px;font-size:12px;color:var(--text-muted);">
+      EduFlow © 2024 — Hackathon Demo
+    </p>
+  </div>
+</div>
+
+<script>
+function togglePwd() {
+  const pwd = document.getElementById('password');
+  const icon = document.getElementById('eyeIcon');
+  if (pwd.type === 'password') { pwd.type = 'text'; icon.className = 'bi bi-eye-slash'; }
+  else { pwd.type = 'password'; icon.className = 'bi bi-eye'; }
+}
+function fillLogin(u, p) {
+  document.getElementById('username').value = u;
+  document.getElementById('password').value = p;
+}
+document.querySelectorAll('.flash-toast').forEach((el, i) => {
+  setTimeout(() => { el.style.opacity='0'; el.style.transition='0.3s'; setTimeout(()=>el.remove(),300); }, 4000);
+});
+</script>
+</body>
+</html>

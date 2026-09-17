@@ -1,0 +1,217 @@
+{% extends "base.html" %}
+{% block title %}{{ student.name }} — Detail{% endblock %}
+{% block page_title %}Student Profile{% endblock %}
+{% block breadcrumb %}Home / Students / {{ student.name }}{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+
+<div class="page-header">
+  <div class="page-header-left">
+    <h1 class="page-heading">Student Profile</h1>
+  </div>
+  <div style="display:flex;gap:10px;">
+    {% if current_user.role == 'admin' %}
+    <a href="{{ url_for('students.edit_student', student_id=student.id) }}" class="btn-ef btn-ef-secondary">✏️ Edit</a>
+    {% endif %}
+    <a href="{{ url_for('ai.ai_assistant') }}?student_id={{ student.id }}" class="btn-ef btn-ef-primary">🤖 Ask AI</a>
+    <a href="{{ url_for('students.students_list') }}" class="btn-ef btn-ef-ghost">← Back</a>
+  </div>
+</div>
+
+<div class="grid-2 section-gap" style="gap:24px;">
+
+  <!-- Left: Student Info Card -->
+  <div>
+    <div class="ef-card" style="margin-bottom:20px;">
+      <div class="ef-card-body" style="text-align:center;padding:32px;">
+        <div class="avatar avatar-xl avatar-purple" style="margin:0 auto 16px;">{{ student.name[0] }}</div>
+        <h2 style="font-family:'Plus Jakarta Sans',sans-serif;font-size:22px;font-weight:800;color:var(--text-primary);margin-bottom:4px;">{{ student.name }}</h2>
+        <code style="font-size:13px;background:rgba(255,255,255,0.06);padding:4px 12px;border-radius:4px;color:var(--purple-light);">{{ student.roll_no }}</code>
+        <div style="margin-top:14px;">
+          <span class="badge-ef {% if student.is_active %}badge-safe{% else %}badge-critical{% endif %}">
+            {{ 'Active' if student.is_active else 'Inactive' }}
+          </span>
+          <span class="badge-ef badge-purple" style="margin-left:8px;">Sec {{ student.section }}</span>
+          <span class="badge-ef badge-peach" style="margin-left:8px;">Sem {{ student.semester }}</span>
+        </div>
+      </div>
+      <div class="divider" style="margin:0;"></div>
+      <div class="ef-card-body" style="padding:20px 24px;">
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          {% if student.email %}
+          <div style="display:flex;justify-content:space-between;">
+            <span style="font-size:13px;color:var(--text-muted);">📧 Email</span>
+            <span style="font-size:13px;color:var(--text-secondary);">{{ student.email }}</span>
+          </div>
+          {% endif %}
+          {% if student.phone %}
+          <div style="display:flex;justify-content:space-between;">
+            <span style="font-size:13px;color:var(--text-muted);">📱 Phone</span>
+            <span style="font-size:13px;color:var(--text-secondary);">{{ student.phone }}</span>
+          </div>
+          {% endif %}
+          <div style="display:flex;justify-content:space-between;">
+            <span style="font-size:13px;color:var(--text-muted);">🎓 Course</span>
+            <span style="font-size:13px;color:var(--text-secondary);">{{ student.course }}</span>
+          </div>
+          {% if student.gender %}
+          <div style="display:flex;justify-content:space-between;">
+            <span style="font-size:13px;color:var(--text-muted);">Gender</span>
+            <span style="font-size:13px;color:var(--text-secondary);">{{ student.gender }}</span>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Overall Attendance Card -->
+    {% if data %}
+    <div class="ef-card">
+      <div class="ef-card-body">
+        <div class="ef-card-title" style="margin-bottom:16px;">Overall Attendance</div>
+
+        <!-- Big % circle -->
+        <div style="text-align:center;margin-bottom:20px;">
+          <div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:52px;font-weight:800;
+                      color:{% if data.overall_percentage >= 75 %}var(--success){% elif data.overall_percentage >= 65 %}var(--warning){% else %}var(--danger){% endif %};">
+            {{ data.overall_percentage }}%
+          </div>
+          <div style="font-size:13px;color:var(--text-muted);">{{ data.total_present }} / {{ data.total_classes }} classes</div>
+        </div>
+
+        <div class="progress-ef" style="height:10px;margin-bottom:16px;">
+          <div class="progress-fill {% if data.risk == 'LOW' %}safe{% elif data.risk == 'MEDIUM' %}medium{% elif data.risk == 'HIGH' %}shortage{% else %}critical{% endif %}"
+               style="width:{{ [data.overall_percentage, 100] | min }}%;"></div>
+        </div>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+          <span style="font-size:13px;color:var(--text-muted);">Risk Status</span>
+          <span class="badge-ef badge-{% if data.risk == 'LOW' %}safe{% elif data.risk == 'MEDIUM' %}medium{% elif data.risk == 'HIGH' %}shortage{% else %}critical{% endif %}">
+            {{ data.risk }}
+          </span>
+        </div>
+
+        {% if data.required_classes > 0 %}
+        <div class="insight-card" style="padding:14px 16px;">
+          <div class="insight-icon">📌</div>
+          <div class="insight-content">
+            <div style="font-size:13px;color:var(--text-secondary);">
+              Attend the next <strong style="color:var(--peach);">{{ data.required_classes }} consecutive classes</strong> to reach 75%.
+            </div>
+          </div>
+        </div>
+        {% elif data.can_miss > 0 %}
+        <div class="insight-card" style="padding:14px 16px;border-color:rgba(74,222,128,0.2);background:rgba(74,222,128,0.06);">
+          <div class="insight-icon">✅</div>
+          <div class="insight-content">
+            <div style="font-size:13px;color:var(--text-secondary);">
+              Can miss up to <strong style="color:var(--success);">{{ data.can_miss }} classes</strong> and still stay above 75%.
+            </div>
+          </div>
+        </div>
+        {% endif %}
+
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Right: Subject Breakdown -->
+  <div>
+    {% if data and data.subjects %}
+    <div class="ef-card">
+      <div class="ef-card-header" style="padding-bottom:16px;">
+        <span class="ef-card-title">Subject-wise Breakdown</span>
+      </div>
+      <div class="ef-card-body" style="padding-top:0;">
+
+        {% for subj in data.subjects | sort(attribute='percentage') %}
+        <div style="margin-bottom:22px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <div>
+              <div style="font-weight:600;font-size:14px;color:var(--text-primary);">{{ subj.subject_name }}</div>
+              <div style="font-size:11px;color:var(--text-muted);">{{ subj.subject_code }} • {{ subj.present }}/{{ subj.total }} present</div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:20px;font-weight:800;
+                          color:{% if subj.percentage >= 75 %}var(--success){% elif subj.percentage >= 65 %}var(--warning){% else %}var(--danger){% endif %};">
+                {{ subj.percentage }}%
+              </div>
+              <span class="badge-ef badge-{% if subj.risk == 'LOW' %}safe{% elif subj.risk == 'MEDIUM' %}medium{% elif subj.risk == 'HIGH' %}shortage{% else %}critical{% endif %}" style="font-size:10px;">
+                {{ subj.risk }}
+              </span>
+            </div>
+          </div>
+          <div class="progress-ef" style="height:7px;">
+            <div class="progress-fill {% if subj.risk == 'LOW' %}safe{% elif subj.risk == 'MEDIUM' %}medium{% elif subj.risk == 'HIGH' %}shortage{% else %}critical{% endif %}"
+                 style="width:{{ [subj.percentage, 100] | min }}%;"></div>
+          </div>
+          {% if subj.required_classes > 0 %}
+          <p style="font-size:11px;color:var(--danger);margin-top:5px;">
+            ⚠ Need {{ subj.required_classes }} more classes to reach 75%
+          </p>
+          {% endif %}
+        </div>
+        {% endfor %}
+
+      </div>
+    </div>
+
+    <!-- Radar chart -->
+    <div class="ef-card" style="margin-top:20px;">
+      <div class="ef-card-header" style="padding-bottom:16px;">
+        <span class="ef-card-title">Attendance Overview</span>
+      </div>
+      <div class="ef-card-body" style="padding-top:0;">
+        <div class="chart-container" style="height:220px;">
+          <canvas id="subjectRadar"></canvas>
+        </div>
+      </div>
+    </div>
+
+    {% endif %}
+  </div>
+</div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% if data and data.subjects %}
+<script>
+Chart.defaults.color = '#a89fc8';
+const labels = {{ data.subjects | map(attribute='subject_code') | list | tojson }};
+const values = {{ data.subjects | map(attribute='percentage') | list | tojson }};
+
+new Chart(document.getElementById('subjectRadar'), {
+  type: 'radar',
+  data: {
+    labels: labels,
+    datasets: [{
+      label: 'Attendance %',
+      data: values,
+      backgroundColor: 'rgba(245,197,143,0.15)',
+      borderColor: 'rgba(245,197,143,0.8)',
+      pointBackgroundColor: 'rgba(245,197,143,1)',
+      pointBorderColor: '#fff',
+      pointRadius: 4,
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    scales: {
+      r: {
+        min: 0, max: 100,
+        ticks: { stepSize: 25, callback: v => v+'%', backdropColor: 'transparent', font: { size: 10 } },
+        grid: { color: 'rgba(155,142,196,0.15)' },
+        pointLabels: { font: { size: 12, weight: '600' }, color: '#a89fc8' },
+        angleLines: { color: 'rgba(155,142,196,0.15)' },
+      }
+    },
+    plugins: { legend: { display: false } }
+  }
+});
+</script>
+{% endif %}
+{% endblock %}

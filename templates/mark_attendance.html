@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+{% block title %}Mark Attendance{% endblock %}
+{% block page_title %}Mark Attendance{% endblock %}
+{% block breadcrumb %}Home / Mark Attendance{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+
+<div class="page-header">
+  <div class="page-header-left">
+    <h1 class="page-heading">Mark Attendance</h1>
+    <p class="page-sub">Select subject and date to mark attendance</p>
+  </div>
+</div>
+
+<!-- Step 1: Select Subject & Date -->
+<div class="ef-card section-gap">
+  <div class="ef-card-header" style="padding-bottom:16px;">
+    <span class="ef-card-title">📅 Step 1: Select Class</span>
+  </div>
+  <div class="ef-card-body" style="padding-top:0;">
+    <form method="GET" action="{{ url_for('attendance.mark_attendance') }}"
+          style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end;">
+
+      <div style="flex:2;min-width:220px;">
+        <label class="ef-label">Subject *</label>
+        <select class="ef-select" name="subject_id" required onchange="this.form.submit()">
+          <option value="">— Choose Subject —</option>
+          {% for s in subjects %}
+          <option value="{{ s.id }}"
+            {% if subject and subject.id == s.id %}selected{% endif %}>
+            [{{ s.code }}] {{ s.name }} — Sem {{ s.semester }} / Sec {{ s.section }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div style="flex:1;min-width:180px;">
+        <label class="ef-label">Date *</label>
+        <input type="date" class="ef-input" name="date"
+               value="{{ selected_date }}"
+               max="{{ today }}"
+               onchange="this.form.submit()" />
+      </div>
+
+    </form>
+  </div>
+</div>
+
+<!-- Step 2: Mark Students -->
+{% if subject and students %}
+<form method="POST" action="{{ url_for('attendance.mark_attendance') }}" id="attendanceForm">
+  <input type="hidden" name="action" value="submit_attendance" />
+  <input type="hidden" name="subject_id" value="{{ subject.id }}" />
+  <input type="hidden" name="date" value="{{ selected_date }}" />
+
+  <div class="ef-card">
+    <div class="ef-card-header" style="padding-bottom:16px;">
+      <div>
+        <span class="ef-card-title">✅ Step 2: Mark Students — {{ subject.name }}</span>
+        <div style="font-size:13px;color:var(--text-muted);margin-top:4px;">
+          {{ selected_date }} • Section {{ subject.section }} • Semester {{ subject.semester }}
+          {% if existing_map %}<span class="badge-ef badge-medium" style="margin-left:8px;">Editing existing records</span>{% endif %}
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;">
+        <button type="button" class="btn-ef btn-ef-success btn-sm" onclick="markAll('Present')">
+          ✓ All Present
+        </button>
+        <button type="button" class="btn-ef btn-ef-danger btn-sm" onclick="markAll('Absent')">
+          ✗ All Absent
+        </button>
+      </div>
+    </div>
+
+    <div id="studentAttList">
+      <!-- Summary counter -->
+      <div style="padding:12px 24px;background:rgba(107,94,168,0.1);border-bottom:1px solid var(--border);
+                  display:flex;gap:20px;font-size:13px;">
+        <span>Total: <strong id="countTotal" style="color:var(--text-primary);">{{ students | length }}</strong></span>
+        <span style="color:var(--success);">Present: <strong id="countPresent">0</strong></span>
+        <span style="color:var(--danger);">Absent: <strong id="countAbsent">0</strong></span>
+      </div>
+
+      {% for student in students %}
+      {% set existing_status = existing_map.get(student.id, 'Present') %}
+      <div class="attendance-student-row">
+        <div class="avatar avatar-sm avatar-purple">{{ student.name[0] }}</div>
+        <div style="flex:1;">
+          <div style="font-weight:600;font-size:14px;color:var(--text-primary);">{{ student.name }}</div>
+          <div style="font-size:11px;color:var(--text-muted);">{{ student.roll_no }}</div>
+        </div>
+        <div class="att-radio-group">
+          <label class="att-radio-label present">
+            <input type="radio" name="status_{{ student.id }}" value="Present"
+                   {% if existing_status == 'Present' %}checked{% endif %}
+                   onchange="updateCount()" />
+            ✓ Present
+          </label>
+          <label class="att-radio-label absent">
+            <input type="radio" name="status_{{ student.id }}" value="Absent"
+                   {% if existing_status == 'Absent' %}checked{% endif %}
+                   onchange="updateCount()" />
+            ✗ Absent
+          </label>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <div style="padding:20px 24px;border-top:1px solid var(--border);display:flex;gap:12px;justify-content:flex-end;">
+      <a href="{{ url_for('attendance.mark_attendance') }}" class="btn-ef btn-ef-ghost">Cancel</a>
+      <button type="submit" class="btn-ef btn-ef-primary btn-lg">
+        💾 Save Attendance
+      </button>
+    </div>
+  </div>
+</form>
+
+{% elif subject %}
+<div class="ef-card">
+  <div class="ef-card-body" style="text-align:center;padding:48px;">
+    <p style="font-size:40px;margin-bottom:12px;">🎓</p>
+    <p style="color:var(--text-muted);">No active students found for <strong style="color:var(--text-primary);">Section {{ subject.section }}, Semester {{ subject.semester }}</strong>.</p>
+  </div>
+</div>
+{% endif %}
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function markAll(status) {
+  document.querySelectorAll(`input[type="radio"][value="${status}"]`).forEach(r => r.checked = true);
+  updateCount();
+}
+
+function updateCount() {
+  const present = document.querySelectorAll('input[value="Present"]:checked').length;
+  const total   = document.querySelectorAll('input[value="Present"]').length;
+  document.getElementById('countPresent').textContent = present;
+  document.getElementById('countAbsent').textContent  = total - present;
+  document.getElementById('countTotal').textContent   = total;
+}
+
+document.addEventListener('DOMContentLoaded', updateCount);
+</script>
+{% endblock %}

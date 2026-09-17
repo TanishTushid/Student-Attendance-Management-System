@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+{% block title %}Students{% endblock %}
+{% block page_title %}Students{% endblock %}
+{% block breadcrumb %}Home / Students{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+
+<!-- Page Header -->
+<div class="page-header">
+  <div class="page-header-left">
+    <h1 class="page-heading">Student Directory</h1>
+    <p class="page-sub">{{ students_data | length }} students found</p>
+  </div>
+  {% if current_user.role == 'admin' %}
+  <a href="{{ url_for('students.add_student') }}" class="btn-ef btn-ef-primary">
+    ➕ Add Student
+  </a>
+  {% endif %}
+</div>
+
+<!-- Filters -->
+<div class="ef-card section-gap">
+  <div class="ef-card-body" style="padding:18px 24px;">
+    <form method="GET" action="{{ url_for('students.students_list') }}" style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
+
+      <div style="flex:1;min-width:200px;">
+        <label class="ef-label">Search</label>
+        <div class="search-wrapper">
+          <span class="search-icon"><i class="bi bi-search"></i></span>
+          <input type="text" class="ef-input search-input" name="search" value="{{ search }}" placeholder="Name, Roll No, Email..." />
+        </div>
+      </div>
+
+      <div style="min-width:140px;">
+        <label class="ef-label">Section</label>
+        <select class="ef-select" name="section">
+          <option value="">All Sections</option>
+          {% for sec in sections %}
+          <option value="{{ sec }}" {% if section_filter == sec %}selected{% endif %}>Section {{ sec }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div style="min-width:140px;">
+        <label class="ef-label">Semester</label>
+        <select class="ef-select" name="semester">
+          <option value="">All Semesters</option>
+          {% for i in range(1, 9) %}
+          <option value="{{ i }}" {% if semester_filter == i|string %}selected{% endif %}>Semester {{ i }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <button type="submit" class="btn-ef btn-ef-primary">🔍 Filter</button>
+      <a href="{{ url_for('students.students_list') }}" class="btn-ef btn-ef-ghost">✕ Clear</a>
+    </form>
+  </div>
+</div>
+
+<!-- Students Table -->
+<div class="ef-card">
+  <div class="ef-table-wrapper" style="border:none;border-radius:0 0 var(--radius-lg) var(--radius-lg);">
+    <table class="ef-table">
+      <thead>
+        <tr>
+          <th>Student</th>
+          <th>Roll No</th>
+          <th>Section</th>
+          <th>Semester</th>
+          <th>Attendance</th>
+          <th>Risk</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if students_data %}
+          {% for item in students_data %}
+          {% set s = item.student %}
+          {% set pct = item.percentage %}
+          {% set risk = 'LOW' if pct >= 80 else ('MEDIUM' if pct >= 75 else ('HIGH' if pct >= 65 else 'CRITICAL')) %}
+          <tr>
+            <td>
+              <div style="display:flex;align-items:center;gap:12px;">
+                <div class="avatar avatar-md {% if loop.index % 3 == 0 %}avatar-green{% elif loop.index % 2 == 0 %}avatar-peach{% else %}avatar-purple{% endif %}">
+                  {{ s.name[0] }}
+                </div>
+                <div>
+                  <div style="font-weight:600;color:var(--text-primary);">{{ s.name }}</div>
+                  <div style="font-size:12px;color:var(--text-muted);">{{ s.email or 'No email' }}</div>
+                </div>
+              </div>
+            </td>
+            <td><code style="font-size:12px;background:rgba(255,255,255,0.06);padding:3px 8px;border-radius:4px;color:var(--purple-light);">{{ s.roll_no }}</code></td>
+            <td><span class="badge-ef badge-purple">Sec {{ s.section }}</span></td>
+            <td style="color:var(--text-secondary);">Sem {{ s.semester }}</td>
+            <td>
+              <div style="display:flex;align-items:center;gap:10px;min-width:140px;">
+                <div class="progress-ef" style="flex:1;height:6px;">
+                  <div class="progress-fill {% if risk == 'LOW' %}safe{% elif risk == 'MEDIUM' %}medium{% elif risk == 'HIGH' %}shortage{% else %}critical{% endif %}"
+                       style="width:{{ [pct, 100] | min }}%;"></div>
+                </div>
+                <span style="font-size:13px;font-weight:700;min-width:40px;color:{% if pct >= 75 %}var(--success){% elif pct >= 65 %}var(--warning){% else %}var(--danger){% endif %};">
+                  {{ pct }}%
+                </span>
+              </div>
+            </td>
+            <td>
+              <span class="badge-ef badge-{% if risk == 'LOW' %}safe{% elif risk == 'MEDIUM' %}medium{% elif risk == 'HIGH' %}shortage{% else %}critical{% endif %}">
+                {{ risk }}
+              </span>
+            </td>
+            <td>
+              <div style="display:flex;gap:6px;">
+                <a href="{{ url_for('students.student_detail', student_id=s.id) }}" class="btn-ef btn-ef-secondary btn-sm" title="View">👁</a>
+                {% if current_user.role == 'admin' %}
+                <a href="{{ url_for('students.edit_student', student_id=s.id) }}" class="btn-ef btn-ef-ghost btn-sm" title="Edit">✏️</a>
+                <form method="POST" action="{{ url_for('students.delete_student', student_id=s.id) }}" style="display:inline;"
+                      onsubmit="return confirm('Delete {{ s.name }}? This cannot be undone.')">
+                  <button type="submit" class="btn-ef btn-ef-danger btn-sm" title="Delete">🗑</button>
+                </form>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="7" style="text-align:center;padding:48px;color:var(--text-muted);">
+              <div style="font-size:40px;margin-bottom:12px;">🔍</div>
+              No students found matching your filters.
+              <br><a href="{{ url_for('students.students_list') }}" style="color:var(--peach);">Clear filters</a>
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+</div>
+{% endblock %}

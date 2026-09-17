@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+{% block title %}Shortage Report{% endblock %}
+{% block page_title %}Reports{% endblock %}
+{% block breadcrumb %}Home / Reports{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+
+<div class="page-header">
+  <div class="page-header-left">
+    <h1 class="page-heading">Shortage Report</h1>
+    <p class="page-sub">{{ rows | length }} records found</p>
+  </div>
+  <div style="display:flex;gap:10px;">
+    <a href="{{ url_for('reports.export_csv') }}?{{ request.query_string.decode() }}"
+       class="btn-ef btn-ef-secondary">
+      📥 Export CSV
+    </a>
+  </div>
+</div>
+
+<!-- Summary Cards -->
+<div class="stat-cards-grid section-gap" style="grid-template-columns:repeat(4,1fr);">
+  <div class="stat-card card-green">
+    <div class="stat-card-top"><div class="stat-icon green">✅</div></div>
+    <div class="stat-value">{{ summary.safe }}</div>
+    <div class="stat-label">Safe (≥75%)</div>
+  </div>
+  <div class="stat-card card-peach">
+    <div class="stat-card-top"><div class="stat-icon yellow">⚡</div></div>
+    <div class="stat-value">{{ summary.medium }}</div>
+    <div class="stat-label">Medium (75-80%)</div>
+  </div>
+  <div class="stat-card card-red">
+    <div class="stat-card-top"><div class="stat-icon red">⚠️</div></div>
+    <div class="stat-value">{{ summary.shortage }}</div>
+    <div class="stat-label">Shortage (65-75%)</div>
+  </div>
+  <div class="stat-card card-red">
+    <div class="stat-card-top"><div class="stat-icon red">🚨</div></div>
+    <div class="stat-value">{{ summary.critical }}</div>
+    <div class="stat-label">Critical (&lt;65%)</div>
+  </div>
+</div>
+
+<!-- Filters -->
+<div class="ef-card section-gap">
+  <div class="ef-card-body" style="padding:18px 24px;">
+    <form method="GET" action="{{ url_for('reports.reports') }}"
+          style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
+
+      <div style="min-width:140px;">
+        <label class="ef-label">Section</label>
+        <select class="ef-select" name="section">
+          <option value="">All Sections</option>
+          {% for s in sections %}
+          <option value="{{ s }}" {% if section_filter == s %}selected{% endif %}>Section {{ s }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div style="min-width:140px;">
+        <label class="ef-label">Semester</label>
+        <select class="ef-select" name="semester">
+          <option value="">All Semesters</option>
+          {% for i in range(1,9) %}
+          <option value="{{ i }}" {% if semester_filter == i|string %}selected{% endif %}>Semester {{ i }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div style="min-width:180px;">
+        <label class="ef-label">Subject</label>
+        <select class="ef-select" name="subject_id">
+          <option value="">All Subjects</option>
+          {% for s in subjects %}
+          <option value="{{ s.id }}" {% if subject_filter == s.id|string %}selected{% endif %}>{{ s.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div style="min-width:140px;">
+        <label class="ef-label">Risk Level</label>
+        <select class="ef-select" name="risk">
+          <option value="">All Risks</option>
+          <option value="LOW" {% if risk_filter == 'LOW' %}selected{% endif %}>✅ Safe</option>
+          <option value="MEDIUM" {% if risk_filter == 'MEDIUM' %}selected{% endif %}>⚡ Medium</option>
+          <option value="HIGH" {% if risk_filter == 'HIGH' %}selected{% endif %}>⚠️ Shortage</option>
+          <option value="CRITICAL" {% if risk_filter == 'CRITICAL' %}selected{% endif %}>🚨 Critical</option>
+        </select>
+      </div>
+
+      <div style="min-width:120px;">
+        <label class="ef-label">Threshold %</label>
+        <input type="number" class="ef-input" name="threshold" value="{{ threshold }}" min="50" max="100" step="1" />
+      </div>
+
+      <button type="submit" class="btn-ef btn-ef-primary">🔍 Filter</button>
+      <a href="{{ url_for('reports.reports') }}" class="btn-ef btn-ef-ghost">✕ Clear</a>
+    </form>
+  </div>
+</div>
+
+<!-- Report Table -->
+<div class="ef-card">
+  <div class="ef-table-wrapper" style="border:none;border-radius:0 0 var(--radius-lg) var(--radius-lg);">
+    <table class="ef-table">
+      <thead>
+        <tr>
+          <th>Student</th>
+          <th>Roll No</th>
+          <th>Subject</th>
+          <th>Present</th>
+          <th>Total</th>
+          <th>Attendance %</th>
+          <th>Required</th>
+          <th>Risk</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if rows %}
+          {% for row in rows %}
+          <tr>
+            <td>
+              <a href="{{ url_for('students.student_detail', student_id=row.student_id) }}"
+                 style="color:var(--text-primary);text-decoration:none;font-weight:600;display:flex;align-items:center;gap:10px;">
+                <div class="avatar avatar-sm avatar-purple">{{ row.name[0] }}</div>
+                {{ row.name }}
+              </a>
+            </td>
+            <td><code style="font-size:12px;background:rgba(255,255,255,0.06);padding:3px 8px;border-radius:4px;color:var(--purple-light);">{{ row.roll_no }}</code></td>
+            <td>
+              <div style="font-weight:500;color:var(--text-primary);">{{ row.subject_name }}</div>
+              <div style="font-size:11px;color:var(--text-muted);">{{ row.subject_code }}</div>
+            </td>
+            <td style="color:var(--success);font-weight:600;">{{ row.present }}</td>
+            <td style="color:var(--text-secondary);">{{ row.total }}</td>
+            <td>
+              <div style="display:flex;align-items:center;gap:10px;min-width:110px;">
+                <div class="progress-ef" style="flex:1;height:5px;">
+                  <div class="progress-fill {% if row.risk == 'LOW' %}safe{% elif row.risk == 'MEDIUM' %}medium{% elif row.risk == 'HIGH' %}shortage{% else %}critical{% endif %}"
+                       style="width:{{ [row.percentage, 100] | min }}%;"></div>
+                </div>
+                <span style="font-size:13px;font-weight:700;min-width:42px;text-align:right;
+                  color:{% if row.percentage >= 75 %}var(--success){% elif row.percentage >= 65 %}var(--warning){% else %}var(--danger){% endif %};">
+                  {{ row.percentage }}%
+                </span>
+              </div>
+            </td>
+            <td style="color:{% if row.required_classes == 0 %}var(--success){% else %}var(--danger){% endif %};font-weight:600;">
+              {% if row.required_classes == 0 %}✓ Safe{% elif row.required_classes < 0 %}N/A{% else %}{{ row.required_classes }} classes{% endif %}
+            </td>
+            <td>
+              <span class="badge-ef badge-{% if row.risk == 'LOW' %}safe{% elif row.risk == 'MEDIUM' %}medium{% elif row.risk == 'HIGH' %}shortage{% else %}critical{% endif %}">
+                {{ row.risk_label }}
+              </span>
+            </td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr><td colspan="8" style="text-align:center;padding:48px;color:var(--text-muted);">
+            <div style="font-size:40px;margin-bottom:12px;">📊</div>
+            No records match your filters.
+          </td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+</div>
+{% endblock %}
